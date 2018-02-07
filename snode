@@ -64,7 +64,7 @@ nodelist.each do |node|
     cpu_load_s = sprintf("%10.2f", cpu_load)
   end
   mem_s = sprintf("%d/%dG", mem_alloc/1000, mem_cfg / 1000)
-  gpu_s = sprintf("%d/%d", gpu_alloc, gpu_cfg)
+  gpu_s = gpu_cfg == 0 ? "---" : sprintf("%d/%d", gpu_alloc, gpu_cfg)
 
   #job_s = jobs_gen(node)
   job_s = ""
