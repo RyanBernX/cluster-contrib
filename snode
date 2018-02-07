@@ -24,26 +24,28 @@ end
 nodelist = ret.scan(REGEX_NODES).flatten
 
 # generate header
-puts sprintf("\e[1m%8s%10s%10s%12s%10s    %s\e[0m\n", "NODE", "CPU", "LOAD", "MEM", "GPU", "JOBID")
-puts "=" * 75
+header = sprintf("\e[1m%8s%10s%10s%12s%10s    %s\e[0m\n", "NODE", "CPU", "LOAD", "MEM", "GPU", "JOBID")
+header += "=" * 75 + "\n"
+data = [header]
 
 # iterate all nodes
 nodelist.each do |node|
   # get the node status
-  ret = `scontrol show node #{node}`
-  res_cfg = `scontrol show node #{node} | grep CfgTRES`
-  res_alloc = `scontrol show node #{node} | grep AllocTRES`
-
+  #ret = `scontrol show node #{node}`
+  regex_single_node = /NodeName=#{node}.+?\n\n/m
+  res = ret[regex_single_node]
+  res_cfg = `echo "#{res}" | grep CfgTRES`
+  res_alloc = `echo "#{res}" | grep AllocTRES`
   # parse output
-  REGEX_CPUTOT =~ ret
+  REGEX_CPUTOT =~ res
   cpu_cfg = $1.to_i
-  REGEX_CPUALLOC =~ ret
+  REGEX_CPUALLOC =~ res
   cpu_alloc = $1.to_i
-  REGEX_CPULOAD =~ ret
+  REGEX_CPULOAD =~ res
   cpu_load = $1.to_f
-  REGEX_MEMALLOC =~ ret
+  REGEX_MEMALLOC =~ res
   mem_alloc = $1.to_i
-  REGEX_MEMREAL =~ ret
+  REGEX_MEMREAL =~ res
   mem_cfg = $1.to_i
   REGEX_GPU =~ res_cfg
   gpu_cfg = $1.to_i
@@ -64,7 +66,9 @@ nodelist.each do |node|
   mem_s = sprintf("%d/%dG", mem_alloc/1000, mem_cfg / 1000)
   gpu_s = sprintf("%d/%d", gpu_alloc, gpu_cfg)
 
-  job_s = jobs_gen(node)
-  puts sprintf(format, node, cpu_s, cpu_load_s, mem_s, gpu_s, job_s)
+  #job_s = jobs_gen(node)
+  job_s = ""
+  data << sprintf(format, node, cpu_s, cpu_load_s, mem_s, gpu_s, job_s)
 
 end
+puts data.join
