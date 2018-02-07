@@ -1,0 +1,70 @@
+#!/usr/bin/env ruby
+
+REGEX_NODES = /NodeName=(.*?)\s/
+REGEX_CPUALLOC = /CPUAlloc=(\d+)/
+REGEX_CPUTOT = /CPUTot=(\d+)/
+REGEX_MEMALLOC = /AllocMem=(\d+)/
+REGEX_MEMREAL = /RealMemory=(\d+)/
+REGEX_CPULOAD = /CPULoad=(\d+\.\d+)/
+REGEX_GPU = /gres\/gpu=(\d+)/
+
+# obtain jobs on specific node
+def jobs_gen(node)
+  ret = `squeue -t R --node=#{node} --Format=jobid,username -h`
+  jobs = ret.split("\n").map{|s| "[#{s.split(/\s+/).join(" ")}]"}.join(" ")
+end
+
+
+# obtain node list
+ret = `scontrol show nodes`
+if $?.exitstatus != 0
+  puts "snodes: \e[31m\e[0mERROR:\e[0m cannot communicate with SLURM daemon."
+  exit(2)
+end
+nodelist = ret.scan(REGEX_NODES).flatten
+
+# generate header
+puts sprintf("\e[1m%8s%10s%10s%12s%10s    %s\e[0m\n", "NODE", "CPU", "LOAD", "MEM", "GPU", "JOBID")
+puts "=" * 75
+
+# iterate all nodes
+nodelist.each do |node|
+  # get the node status
+  ret = `scontrol show node #{node}`
+  res_cfg = `scontrol show node #{node} | grep CfgTRES`
+  res_alloc = `scontrol show node #{node} | grep AllocTRES`
+
+  # parse output
+  REGEX_CPUTOT =~ ret
+  cpu_cfg = $1.to_i
+  REGEX_CPUALLOC =~ ret
+  cpu_alloc = $1.to_i
+  REGEX_CPULOAD =~ ret
+  cpu_load = $1.to_f
+  REGEX_MEMALLOC =~ ret
+  mem_alloc = $1.to_i
+  REGEX_MEMREAL =~ ret
+  mem_cfg = $1.to_i
+  REGEX_GPU =~ res_cfg
+  gpu_cfg = $1.to_i
+  REGEX_GPU =~ res_alloc
+  gpu_alloc = $1.to_i
+
+  # output format string
+  format = "%8s%10s%s%12s%10s    %s\n"
+  cpu_s = sprintf("%d/%d", cpu_alloc, cpu_cfg)
+  load_rate = cpu_load / cpu_cfg
+  if load_rate > 1
+    cpu_load_s = sprintf("\e[31m\e[1m%10s\e[0m", sprintf("%.2f(!)", cpu_load))
+  elsif load_rate > 0.75
+    cpu_load_s = sprintf("\e[33m%10.2f\e[0m", cpu_load)
+  else
+    cpu_load_s = sprintf("%10.2f", cpu_load)
+  end
+  mem_s = sprintf("%d/%dG", mem_alloc/1000, mem_cfg / 1000)
+  gpu_s = sprintf("%d/%d", gpu_alloc, gpu_cfg)
+
+  job_s = jobs_gen(node)
+  puts sprintf(format, node, cpu_s, cpu_load_s, mem_s, gpu_s, job_s)
+
+end

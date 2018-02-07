@@ -1,0 +1,37 @@
+#!/bin/bash
+# by zlong
+if [ $# -gt 0 ]
+then
+    if [ $1 = '-h' -o $1 = '--help' ]
+    then
+        echo "sjob [FILTERLIST]"
+        echo ""
+        echo "Usage:"
+        echo "    sjob"
+        echo "    sjob USERNAMELIST"
+        echo "    sjob NODELIST"
+        echo "    sjob ACCOUNTLIST"
+        echo ""
+        echo "Example:"
+        echo "    sjob liuhy zyli zlong"
+        echo "    sjob gpu00 gpu03"
+        echo "    sjob bdong zxzhu lzhang qzli wne"
+        echo ""
+    else
+        i=`expr 0`
+        M=""
+        for input in $@; do
+            if [ ${i} -gt 0 ]
+            then
+                M=${M}"|"${input}
+            else
+                M=${input}
+            fi
+            i=`expr ${i} + 1`
+        done
+        squeue -o "%.18i %.8u %.8a %.4C %.5b %.8N %.10L %.10l %.8Q %.8T %r" | head -n 1
+        squeue -o "%.18i %.8u %.8a %.4C %.5b %.8N %.10L %.10l %.8Q %.8T %r" | grep -E ${M}
+    fi
+else
+    squeue -o "%.18i %.8u %.8a %.4C %.5b %.8N %.10L %.10l %.8Q %.8T %r"
+fi
