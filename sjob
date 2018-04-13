@@ -29,9 +29,9 @@ then
             fi
             i=`expr ${i} + 1`
         done
-        squeue -o "%.18i %.8u %.8a %.4C %.5b %.8N %.10L %.10l %.8Q %.8T %r" | head -n 1
-        squeue -o "%.18i %.8u %.8a %.4C %.5b %.8N %.10L %.10l %.8Q %.8T %r" | grep -E ${M}
+        squeue -o "%.18i %.11u %.8a %.4C %.5b %.10N %.10L %.10l %.8Q %.8T %r" | head -n 1
+        squeue -o "%.18i %.11u %.8a %.4C %.5b %.10N %.10L %.10l %.8Q %.8T %r" | grep -E ${M}
     fi
 else
-    squeue -o "%.18i %.8u %.8a %.4C %.5b %.8N %.10L %.10l %.8Q %.8T %r"
+    squeue -o "%.18i %.11u %.8a %.4C %.5b %.10N %.10L %.10l %.8Q %.8T %r"
 fi
