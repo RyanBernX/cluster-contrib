@@ -56,7 +56,7 @@ nodelist.each do |node|
   format = "%8s%10s%s%12s%10s    %s\n"
   cpu_s = sprintf("%d/%d", cpu_alloc, cpu_cfg)
   load_rate = cpu_load / cpu_cfg
-  if load_rate > 1
+  if load_rate > 1.2
     cpu_load_s = sprintf("\e[31m\e[1m%10s\e[0m", sprintf("%.2f(!)", cpu_load))
   elsif load_rate > 0.75
     cpu_load_s = sprintf("\e[33m%10.2f\e[0m", cpu_load)
