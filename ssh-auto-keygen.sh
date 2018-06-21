@@ -3,7 +3,7 @@
 user=`whoami`
 home=$HOME
  
-if [ "$user" == "nobody" ] ; then
+if [ "$user" = "nobody" ] ; then
     echo Not creating SSH keys for user $user
 elif [ `echo $home | wc -w` -ne 1 ] ; then
     echo cannot determine home directory of user $user
