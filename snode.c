@@ -109,10 +109,12 @@ void get_alloc_tres(void *data, int *cpus, int *mem, int *gpus){
 
 int get_conf_gpus(char *data){
     int ret = -1;
+    char *sub;
     if (data == NULL)
         return ret;
-    if (strstr(data, "gpu"))
-         sscanf(data, "gpu:%d", &ret);
+    if ((sub = strstr(data, "gpu")) != NULL){
+         sscanf(sub, "gpu=%d", &ret);
+    }
     return ret;
 }
 
@@ -161,7 +163,7 @@ int main(){
         load_str(pnode->cpu_load, pnode->cpus, buff_load);
         cpu_str(alloc_cpu, pnode->cpus, buff_cpu);
         mem_str(alloc_mem, pnode->real_memory, buff_mem);
-        gpu_str(alloc_gpu, get_conf_gpus(pnode->gres), buff_gpu);
+        gpu_str(alloc_gpu, get_conf_gpus(pnode->tres_fmt_str), buff_gpu);
         job_str(pnode->name, job_info_msg_ptr, buff_job);
         printf("%8s%10s%10s%12s%10s    %s\n",
                 pnode->name,
