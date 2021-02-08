@@ -80,7 +80,7 @@ void job_str(char *node_name, job_info_msg_t *jobs, char *buff){
         slurm_job_info_t *pinfo = jobs->job_array + i;
         int cpu_cnt = slurm_job_cpus_allocated_on_node(pinfo->job_resrcs, node_name);
 
-        if (cpu_cnt > 0){
+        if (pinfo->job_state == JOB_RUNNING && cpu_cnt > 0){
             /* calculate time left */
             time_t now = time(NULL);
             time_t elapsed = now - pinfo->start_time;
