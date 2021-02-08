@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <slurm/slurm.h>
 
 #define BUFF_LEN_A 128
@@ -36,6 +37,43 @@ void gpu_str(int gpu_alloc, int gpu_config, char *buff){
         sprintf(buff, "%d/%d", gpu_alloc, gpu_config);
 }
 
+void time_left_str(time_t t_left, char *buff){
+    uint32_t dhms[4];
+    uint32_t divider[] = {60, 60, 24};
+
+    if (t_left < 0){
+        sprintf(buff, "---");
+        return;
+    }
+
+    for (int i = 0; i < 3; ++i){
+        dhms[i] = t_left % divider[i];
+        t_left /= divider[i];
+    }
+    dhms[3] = t_left;
+
+    int ipos = 3;
+    while (dhms[ipos] == 0) --ipos;
+
+    switch (ipos){
+        case 3:
+            sprintf(buff, "%u-%02u:%02u:%02u", dhms[3], dhms[2], dhms[1], dhms[0]);
+            break;
+        case 2:
+            sprintf(buff, "%u:%02u:%02u", dhms[2], dhms[1], dhms[0]);
+            break;
+        case 1:
+            sprintf(buff, "%u:%02u", dhms[1], dhms[0]);
+            break;
+        case 0:
+            sprintf(buff, "0:%02u", dhms[0]);
+            break;
+        default:
+            sprintf(buff, "---");
+            break;
+    }
+}
+
 void job_str(char *node_name, job_info_msg_t *jobs, char *buff){
     char local_buff[BUFF_LEN_A];
     for (int i = 0; i < jobs->record_count; ++i){
@@ -43,7 +81,14 @@ void job_str(char *node_name, job_info_msg_t *jobs, char *buff){
         int cpu_cnt = slurm_job_cpus_allocated_on_node(pinfo->job_resrcs, node_name);
 
         if (cpu_cnt > 0){
-            sprintf(local_buff, "[%d %s] ", pinfo->job_id, pinfo->user_name);
+            /* calculate time left */
+            time_t now = time(NULL);
+            time_t elapsed = now - pinfo->start_time;
+            time_t left = pinfo->time_limit * 60 - elapsed;
+            char time_left_buff[BUFF_LEN_A];
+            time_left_str(left, time_left_buff);
+
+            sprintf(local_buff, "[%d %s %s] ", pinfo->job_id, pinfo->user_name, time_left_buff);
             strcat(buff, local_buff);
         }
     }
@@ -51,13 +96,15 @@ void job_str(char *node_name, job_info_msg_t *jobs, char *buff){
 
 void get_alloc_tres(void *data, int *cpus, int *mem, int *gpus){
     char *buff = (char*)data;
+    char unit;
     /* check whether we have gpu */
     if (strstr(buff, "gpu")){
-        sscanf(buff, "cpu=%d,mem=%dM,gres/gpu=%d", cpus, mem, gpus);
+        sscanf(buff, "cpu=%d,mem=%d%c,gres/gpu=%d", cpus, mem, &unit, gpus);
     } else {
-        sscanf(buff, "cpu=%d,mem=%dM", cpus, mem);
+        sscanf(buff, "cpu=%d,mem=%d%c", cpus, mem, &unit);
         *gpus = 0; /* no gpus on this node */
     }
+    if (unit == 'G') *mem *= 1024; /* default unit is MiB */
 }
 
 int get_conf_gpus(char *data){
@@ -90,8 +137,8 @@ int main(){
     }
 
     /* header */
-    printf("\e[1m%8s%10s%10s%12s%10s    %s\e[0m\n", "NODE", "CPU", "LOAD", "MEM", "GPU", "JOBID");
-    for (int i = 0; i < 75; ++i) printf("=");
+    printf("\e[1m%8s%10s%10s%12s%10s    %s\e[0m\n", "NODE", "CPU", "LOAD", "MEM", "GPU", "JOB [ID USER TIME_LEFT]");
+    for (int i = 0; i < 80; ++i) printf("=");
     printf("\n");
 
     /* show each node line by line */
