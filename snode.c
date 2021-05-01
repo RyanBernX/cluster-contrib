@@ -24,6 +24,8 @@ void node_str(uint32_t state, const char* name, char *buff){
         } else if (state_base == NODE_STATE_DOWN){
             sprintf(buff, "*%s", name);
         }
+    } else if (state_flag & NODE_STATE_RES){
+        sprintf(buff, "#%s", name);
     } else {
         sprintf(buff, "%s", name);
     }
@@ -204,6 +206,7 @@ int main(){
     /* legend */
     printf("  NODE LEGEND\n");
     printf("     -  draining/drained (not allocating new jobs)\n");
+    printf("     #  reserved for teaching\n");
     printf("     *  down\n");
     printf("    **  poweroff/not responding\n");
 
