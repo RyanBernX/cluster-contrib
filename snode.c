@@ -9,6 +9,26 @@
 
 void slurm_xfree(void **);
 
+void node_str(uint32_t state, const char* name, char *buff){
+    uint32_t state_base, state_flag;
+
+    /* obtain state_lo, state_hi */
+    state_base = state & NODE_STATE_BASE;
+    state_flag = state & NODE_STATE_FLAGS;
+
+    if (state_flag & NODE_STATE_NO_RESPOND){
+        sprintf(buff, "**%s", name);
+    } else if (state_flag & NODE_STATE_DRAIN){
+        if (state_base > NODE_STATE_DOWN && state_base < NODE_STATE_FUTURE){
+            sprintf(buff, "-%s", name);
+        } else if (state_base == NODE_STATE_DOWN){
+            sprintf(buff, "*%s", name);
+        }
+    } else {
+        sprintf(buff, "%s", name);
+    }
+}
+
 void load_str(uint32_t cpu_load, uint32_t cpus, char *buff){
     double cpu_load_f = (double)cpu_load / 100;
     double factor = cpu_load_f / cpus;
@@ -123,7 +143,7 @@ int main(){
     node_info_msg_t *node_info_msg_ptr;
     job_info_msg_t *job_info_msg_ptr;
     void *alloc_tres_buffer;
-    char buff_load[BUFF_LEN_A], buff_cpu[BUFF_LEN_A],
+    char buff_node[BUFF_LEN_A], buff_load[BUFF_LEN_A], buff_cpu[BUFF_LEN_A],
          buff_mem[BUFF_LEN_A], buff_gpu[BUFF_LEN_A], buff_job[BUFF_LEN_B];
 
     info = slurm_load_node((time_t)NULL, &node_info_msg_ptr, SHOW_ALL);
@@ -139,7 +159,7 @@ int main(){
     }
 
     /* header */
-    printf("\e[1m%8s%10s%10s%12s%10s    %s\e[0m\n", "NODE", "CPU", "LOAD", "MEM", "GPU", "JOB [ID USER TIME_LEFT]");
+    printf("\e[1m%10s%10s%10s%12s%10s    %s\e[0m\n", "NODE", "CPU", "LOAD", "MEM", "GPU", "JOB [ID USER TIME_LEFT]");
     for (int i = 0; i < 80; ++i) printf("=");
     printf("\n");
 
@@ -160,13 +180,14 @@ int main(){
 
         /* draw cpu, load, mem, gpu, jobs */
         buff_job[0] = '\0';
+        node_str(pnode->node_state, pnode->name, buff_node);
         load_str(pnode->cpu_load, pnode->cpus, buff_load);
         cpu_str(alloc_cpu, pnode->cpus, buff_cpu);
         mem_str(alloc_mem, pnode->real_memory, buff_mem);
         gpu_str(alloc_gpu, get_conf_gpus(pnode->tres_fmt_str), buff_gpu);
         job_str(pnode->name, job_info_msg_ptr, buff_job);
-        printf("%8s%10s%10s%12s%10s    %s\n",
-                pnode->name,
+        printf("%10s%10s%10s%12s%10s    %s\n",
+                buff_node,
                 buff_cpu,
                 buff_load,
                 buff_mem,
@@ -175,6 +196,17 @@ int main(){
               );
         slurm_xfree(&alloc_tres_buffer);
     }
+
+    /* hline */
+    for (int i = 0; i < 80; ++i) printf("=");
+    printf("\n");
+
+    /* legend */
+    printf("  NODE LEGEND\n");
+    printf("     -  draining/drained (not allocating new jobs)\n");
+    printf("     *  down\n");
+    printf("    **  poweroff/not responding\n");
+
     slurm_free_node_info_msg(node_info_msg_ptr);
     slurm_free_job_info_msg(job_info_msg_ptr);
 
