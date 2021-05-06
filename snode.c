@@ -206,7 +206,9 @@ int main(){
     /* legend */
     printf("  NODE LEGEND\n");
     printf("     -  draining/drained (not allocating new jobs)\n");
+#ifndef CL_NO_RESV
     printf("     #  reserved for teaching\n");
+#endif
     printf("     *  down\n");
     printf("    **  poweroff/not responding\n");
 
