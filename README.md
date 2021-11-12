@@ -1,13 +1,33 @@
-# 集群辅助管理脚本
+# Auxiliary scripts for cluster management
 
-开发者维护一个列表，简要说明每个文件的作用。更新的时候
-填写更新日志。
+## Contents
+- `snode.c`: query SLURM cluster status, one node per line (load, allocated
+  resources, active jobs, etc)
+- `sjob` by @ZichaoLong: query SLURM jobs (a wrapper for `squeue`)
+- `matslm.rb`: generate SLURM scripts and submit MATLAB jobs.
+- `ssh-auto-keygen.sh`: configure SSH public key authentication among the cluster
+  nodes (normal users)
 
-## 主要内容
-- `snode.bak` by @liuhy: 按节点查看 SLURM 状态，包含节点任务，负载，资源占用等情况。
-  已经被 `snode.c`（C 语言版本）替代。
-- `sjob` by @zlong: 按 job 查看 SLURM 状态，实际是 `squeue` 一些常用参数的组合。
-- `matslm.rb` by @liuhy: 快速生成 SLURM 脚本并提交 MATLAB 任务。实际上是给不愿
-学习 SLURM 脚本的纯 MATLAB 用户提供方便。
-- `ssh-auto-keygen.sh` by @sugon: 首次登录自动配置普通用户在计算节点间的 SSH
-无密码登录。
+## Usage
+
+### `snode.c`
+Edit `Makefile`: set `SLURM_ROOT` to your SLURM installation path.
+Then type `make` to compile.
+
+You'll see `snode` in the current directory. Copy it to somewhere you prefer
+(typically `/usr/local/lib`).
+
+**Note**: if SLURM is upgraded, `snode.c` must be compiled again.
+
+### `sjob`
+See `sjob -h`.
+
+### `matslm.rb`
+Install ruby (probably with `apt` or `yum`). Then type `matslm.rb -h` for help.
+
+### `ssh-auto-keygen.sh`
+The script assumes the home directory is shared among the
+nodes via some network filesystem (or lustre, gpfs).
+
+Just put the script under `/etc/profile.d/`.
+
