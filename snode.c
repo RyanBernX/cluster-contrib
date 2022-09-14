@@ -184,12 +184,23 @@ int main(){
         if (alloc_tres_buffer != NULL)
             get_alloc_tres(alloc_tres_buffer, &alloc_cpu, &alloc_mem, &alloc_gpu);
 
+        /* alternative method to obtain alloc mem */
+        uint32_t alloc_mem_u = 0;
+        info = slurm_get_select_nodeinfo(pnode->select_nodeinfo,
+                SELECT_NODEDATA_MEM_ALLOC,
+                NODE_STATE_ALLOCATED, &alloc_mem_u);
+        bool use_alternative = info == 0;
+
         /* draw cpu, load, mem, gpu, jobs */
         buff_job[0] = '\0';
         node_str(pnode->node_state, pnode->name, buff_node);
         load_str(pnode->cpu_load, pnode->cpus, buff_load);
         cpu_str(alloc_cpu, pnode->cpus, buff_cpu);
-        mem_str(alloc_mem, pnode->real_memory, buff_mem);
+        if (use_alternative){
+            mem_str(alloc_mem_u, pnode->real_memory, buff_mem);
+        } else {
+            mem_str(alloc_mem, pnode->real_memory, buff_mem);
+        }
         gpu_str(alloc_gpu, get_conf_gpus(pnode->tres_fmt_str), buff_gpu);
         job_str(pnode->name, job_info_msg_ptr, buff_job);
         printf("%10s%10s%10s%12s%10s    %s\n",
