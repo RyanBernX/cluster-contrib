@@ -152,6 +152,10 @@ int main(){
     char buff_node[BUFF_LEN_A], buff_load[BUFF_LEN_A], buff_cpu[BUFF_LEN_A],
          buff_mem[BUFF_LEN_A], buff_gpu[BUFF_LEN_A], buff_job[BUFF_LEN_B];
 
+#if SLURM_VERSION_NUMBER >= SLURM_VERSION_NUM(20,11,0)
+    slurm_init(NULL);
+#endif
+
     info = slurm_load_node((time_t)NULL, &node_info_msg_ptr, SHOW_ALL);
     if (info != 0){
         fprintf(stderr, "Slurm load node status failed (exit code %d).\n", info);

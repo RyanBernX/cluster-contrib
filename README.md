@@ -15,7 +15,7 @@ Edit `Makefile`: set `SLURM_ROOT` to your SLURM installation path.
 Then type `make` to compile.
 
 You'll see `snode` in the current directory. Copy it to somewhere you prefer
-(typically `/usr/local/lib`).
+(typically `/usr/local/bin`).
 
 **Note**: if SLURM is upgraded, `snode.c` must be compiled again.
 
