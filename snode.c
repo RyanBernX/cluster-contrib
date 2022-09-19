@@ -123,14 +123,34 @@ void job_str(char *node_name, job_info_msg_t *jobs, char *buff){
 void get_alloc_tres(void *data, int *cpus, int *mem, int *gpus){
     char *buff = (char*)data;
     char unit;
-    /* check whether we have gpu */
-    if (strstr(buff, "gpu")){
-        sscanf(buff, "cpu=%d,mem=%d%c,gres/gpu=%d", cpus, mem, &unit, gpus);
+    /* parse tres data */
+    char *cpu_str = strstr(buff, "cpu");
+    char *mem_str = strstr(buff, "mem");
+    char *gpu_str = strstr(buff, "gpu");
+
+
+    if (cpu_str){
+        sscanf(cpu_str, "cpu=%d", cpus);
     } else {
-        sscanf(buff, "cpu=%d,mem=%d%c", cpus, mem, &unit);
+        *cpus = 0;
+    }
+
+    if (mem_str){
+        double dmem = 0;
+        char *endptr;
+        dmem = strtod(mem_str+4, &endptr); // mem=xxxx
+        unit = *endptr;
+        if (unit == 'G') dmem *= 1024; /* default unit is MiB */
+        *mem = (int)dmem;
+    } else {
+        *mem = 0;
+    }
+
+    if (gpu_str){
+        sscanf(gpu_str, "gpu=%d", gpus);
+    } else {
         *gpus = 0; /* no gpus on this node */
     }
-    if (unit == 'G') *mem *= 1024; /* default unit is MiB */
 }
 
 int get_conf_gpus(char *data){
@@ -148,7 +168,6 @@ int main(){
     int info;
     node_info_msg_t *node_info_msg_ptr;
     job_info_msg_t *job_info_msg_ptr;
-    void *alloc_tres_buffer;
     char buff_node[BUFF_LEN_A], buff_load[BUFF_LEN_A], buff_cpu[BUFF_LEN_A],
          buff_mem[BUFF_LEN_A], buff_gpu[BUFF_LEN_A], buff_job[BUFF_LEN_B];
 
@@ -177,6 +196,7 @@ int main(){
     for (int i = 0; i < node_info_msg_ptr->record_count; ++i){
         node_info_t *pnode = node_info_msg_ptr->node_array + i;
         int alloc_cpu = 0, alloc_mem = 0, alloc_gpu = 0;
+        void *alloc_tres_buffer = NULL;
         info = slurm_get_select_nodeinfo(pnode->select_nodeinfo,
                  SELECT_NODEDATA_TRES_ALLOC_FMT_STR,
                  NODE_STATE_ALLOCATED, &alloc_tres_buffer);
@@ -185,26 +205,16 @@ int main(){
             continue;
         }
 
-        if (alloc_tres_buffer != NULL)
+        if (alloc_tres_buffer != NULL){
             get_alloc_tres(alloc_tres_buffer, &alloc_cpu, &alloc_mem, &alloc_gpu);
-
-        /* alternative method to obtain alloc mem */
-        uint32_t alloc_mem_u = 0;
-        info = slurm_get_select_nodeinfo(pnode->select_nodeinfo,
-                SELECT_NODEDATA_MEM_ALLOC,
-                NODE_STATE_ALLOCATED, &alloc_mem_u);
-        bool use_alternative = info == 0;
+        }
 
         /* draw cpu, load, mem, gpu, jobs */
         buff_job[0] = '\0';
         node_str(pnode->node_state, pnode->name, buff_node);
         load_str(pnode->cpu_load, pnode->cpus, buff_load);
         cpu_str(alloc_cpu, pnode->cpus, buff_cpu);
-        if (use_alternative){
-            mem_str(alloc_mem_u, pnode->real_memory, buff_mem);
-        } else {
-            mem_str(alloc_mem, pnode->real_memory, buff_mem);
-        }
+        mem_str(alloc_mem, pnode->real_memory, buff_mem);
         gpu_str(alloc_gpu, get_conf_gpus(pnode->tres_fmt_str), buff_gpu);
         job_str(pnode->name, job_info_msg_ptr, buff_job);
         printf("%10s%10s%10s%12s%10s    %s\n",
